@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer-when-downgrade" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>NZM FLIX | Native Edition</title>
+  
+  <!-- Include HLS.js to play .m3u8 video streams natively in the browser -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    /* All reference styles kept perfectly intact */
+    :root {
+      --font-body: 'HelveticaLTStd-Roman', 'Helvetica LT Std', 'Helvetica Neue', Arial, sans-serif;
+      --font-display: 'Orbitron', var(--font-body);
+      --font-xl: clamp(1.6rem, 2.5vw, 2.4rem);
+      --font-lg: clamp(1.2rem, 1.8vw, 1.6rem);
+      --font-md: clamp(1rem, 1.4vw, 1.2rem);
+      --font-sm: clamp(0.85rem, 1.1vw, 1rem);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --page-pad-left: max(16px, calc(var(--safe-left) + 16px));
+      --page-pad-right: max(16px, calc(var(--safe-right) + 16px));
+      --page-pad-top: max(12px, calc(var(--safe-top) + 8px));
+      --page-pad-bottom: max(16px, calc(var(--safe-bottom) + 16px));
+      --app-vh: 1vh;
+      --app-dvh: 100dvh;
+      --red: #e50914;
+      --bg: #000;
+      --panel: #111;
+      --panel-2: #1a1a1a;
+      --text-soft: #b9b9b9;
+      --border: #2b2b2b;
+      --focus: #ffffff;
+      --focus-glow: 0 0 0 3px rgba(255,255,255,.95), 0 0 18px rgba(229, 9, 20, .6);
+      --safe-pad-x: clamp(16px, 5vw, 5%);
+      --card-w: clamp(145px, 15vw, 210px);
+      --card-h: calc(var(--card-w) * 1.5);
+      --hero-h: min(72dvh, calc(var(--app-vh) * 72));
+      --header-h: 72px;
+      --radius: 8px;
+      --row-gap: 14px;
+      --tv-scale: 1.08;
+      --fast: .18s ease;
+    }
+
+    html { scroll-behavior: smooth; background: var(--bg); min-height: 100%; }
+    body { margin: 0; min-height: 100dvh; background: var(--bg); color: #fff; font-family: var(--font-body); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+    body.modal-open, body.search-open { overflow: hidden; }
+    * { box-sizing: border-box; }
+    button, input, select { font: inherit; }
+    img { display: block; }
+    [hidden] { display: none !important; }
+
+    #loader { position: fixed; inset: 0; z-index: 9999; display: flex; justify-content: center; align-items: center; background: var(--bg); }
+    .spinner { width: 56px; height: 56px; border: 4px solid rgba(229, 9, 20, 0.14); border-top: 4px solid var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    header { position: fixed; inset: 0 0 auto 0; height: var(--header-h); z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: calc(14px + var(--safe-top)) var(--page-pad-right) 14px var(--page-pad-left); background: linear-gradient(to bottom, rgba(0,0,0,.95), transparent); }
+    .logo { color: var(--red); font-size: clamp(24px, 3vw, 32px); font-weight: 900; background: transparent; border: none; cursor: pointer; font-family: var(--font-display); text-transform: uppercase; }
+    .head-btn { background: rgba(255,255,255,.08); border: none; color: #fff; padding: 10px 14px; border-radius: 999px; cursor: pointer; min-height: 44px; }
+
+    main { padding-bottom: calc(48px + var(--page-pad-bottom)); }
+    .hero { position: relative; height: var(--hero-h); display: flex; align-items: flex-end; padding: 0 var(--page-pad-right) calc(40px + var(--page-pad-bottom)) var(--page-pad-left); background-size: cover; background-position: center top; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 6%, transparent 42%), linear-gradient(to right, rgba(0,0,0,.82), transparent); }
+    .hero-body { position: relative; z-index: 1; max-width: 720px; }
+    .hero-body h1 { font-family: var(--font-display); font-size: var(--font-xl); margin: 0 0 12px; text-transform: uppercase; }
+    .hero-overview { font-size: clamp(14px, 1.8vw, 18px); color: #ddd; margin-bottom: 22px; }
+    
+    .btn-red { background: linear-gradient(180deg, #ff2432, #d90813); border: none; color: #fff; font-weight: 700; padding: 13px 24px; border-radius: 999px; cursor: pointer; }
+    .section { padding: 26px 0 0 var(--page-pad-left); }
+    .section h3 { font-family: var(--font-display); font-size: var(--font-lg); margin: 0 0 14px; text-transform: uppercase; }
+    
+    .row { display: flex; gap: var(--row-gap); overflow-x: auto; padding-bottom: 24px; scrollbar-width: none; }
+    .row::-webkit-scrollbar { display: none; }
+    
+    .card { min-width: var(--card-w); width: var(--card-w); background: transparent; border: none; color: inherit; text-align: left; cursor: pointer; }
+    .card img { width: 100%; height: var(--card-h); object-fit: cover; border-radius: var(--radius); border: 1px solid rgba(255,255,255,.05); }
+    .card-name { font-size: 13px; margin-top: 9px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Modal Layout updated for native video alignment */
+    .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; }
+    .modal.open { display: block; }
+    .close-btn { position: fixed; top: 14px; right: 16px; z-index: 4000; background: rgba(0,0,0,.7); color: #fff; border: 1px solid rgba(255,255,255,.15); width: 46px; height: 46px; border-radius: 50%; cursor: pointer; }
+    
+    .modal-content { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-top: 60px; }
+    .video-side { width: 100%; padding: 0 var(--page-pad-right) 0 var(--page-pad-left); }
+    .video-wrap { width: 100%; aspect-ratio: 16 / 9; background: #050505; border-radius: 10px; overflow: hidden; border: 1px solid #1e1e1e; position: relative; }
+    
+    /* Native Video Element Style mapping */
+    video#nativePlayer { width: 100%; height: 100%; background: #000; object-fit: contain; }
+    
+    .info-side { padding: 24px var(--page-pad-right) calc(28px + var(--page-pad-bottom)) var(--page-pad-left); }
+    .meta-main h2 { font-family: var(--font-display); font-size: var(--font-xl); margin: 0 0 8px; }
+    .meta-desc { font-size: 15px; color: #b5b5b5; line-height: 1.65; }
+    
+    .epList { margin-top: 14px; display: grid; gap: 10px; }
+    .ep-card { display: flex; align-items: center; gap: 12px; padding: 10px; background: #111; border-radius: 8px; border: 1px solid #1d1d1d; cursor: pointer; color: #fff; }
+    .ep-card.playing { border-left: 4px solid var(--red); background: #171717; }
+    .ep-title { font-weight: 700; font-size: 14px; }
+
+    #searchView { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.97); display: none; overflow-y: auto; padding: calc(96px + var(--safe-top)) var(--page-pad-right) 50px var(--page-pad-left); }
+    #searchView.open { display: block; }
+    .search-bar { width: min(700px, 100%); padding: 14px 20px; background: #111; border: 1px solid #2d2d2d; color: white; border-radius: 999px; font-size: 16px; outline: none; }
+    #searchRes { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 16px; margin-top: 24px; }
+
+    @media (min-width: 1024px) {
+      .modal-content { flex-direction: row; gap: 28px; padding: 80px var(--page-pad-right) var(--page-pad-bottom); }
+      .video-side { width: 60%; padding: 0; }
+      .info-side { width: 40%; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loader"><div class="spinner"></div></div>
+
+  <header id="siteHeader">
+    <div class="head-left">
+      <button id="logoBtn" class="logo">NZM FLIX</button>
+    </div>
+    <div class="head-right">
+      <button id="searchBtn" class="head-btn">🔍 Search</button>
+    </div>
+  </header>
+
+  <main id="home">
+    <section id="hero" class="hero">
+      <div class="hero-body">
+        <h1 id="heroTitle">Loading Feature...</h1>
+        <p id="heroOverview" class="hero-overview"></p>
+        <button id="heroPlayBtn" class="btn-red">▶ Play</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>Trending Movies</h3>
+      <div class="row" id="movies-row"></div>
+    </section>
+
+    <section class="section">
+      <h3>Popular TV Shows</h3>
+      <div class="row" id="tv-row"></div>
+    </section>
+  </main>
+
+  <!-- Player Modal View Configured with Native HTML5 Controls -->
+  <div id="pModal" class="modal">
+    <button id="closeModalBtn" class="close-btn">✕</button>
+    <div class="modal-content">
+      <div class="video-side">
+        <div class="video-wrap" id="vidContainer">
+          <!-- Swapped dynamic iframe out for native video player engine -->
+          <video id="nativePlayer" controls playsinline crossorigin="anonymous"></video>
+        </div>
+      </div>
+      <div class="info-side">
+        <div class="meta-main">
+          <h2 id="modalTitle">Title</h2>
+          <p id="modalDesc" class="meta-desc">Description goes here...</p>
+        </div>
+        <div id="episodesSection" hidden>
+          <h3>Episodes</h3>
+          <div class="epList" id="epList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search View overlay interface overlay layer -->
+  <div id="searchView">
+    <div class="head-left" style="margin-bottom: 20px;">
+      <button id="closeSearchBtn" class="head-btn">← Back Home</button>
+    </div>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search movies or TV shows..." />
+    <div id="searchRes"></div>
+  </div>
+
+  <script>
+    // ==========================================
+    // CONFIGURATION KEYS
+    // ==========================================
+    const TMDB_API_KEY = 'YOUR_TMDB_API_KEY'; // Replace with your standard TMDB v3 API Key
+    const TMDB_BASE = 'https://api.themoviedb.org/3';
+    const IMAGE_BASE = 'https://image.tmdb.org/t/p/original';
+    const KISSKH_BASE = 'https://kisskh.do/api'; // Primary API domain wrapper mirror for kisskh mapping data elements
+
+    let hlsInstance = null;
+
+    // DOM Elements Cache Mapping Setup definitions
+    const loader = document.getElementById('loader');
+    const moviesRow = document.getElementById('movies-row');
+    const tvRow = document.getElementById('tv-row');
+    const pModal = document.getElementById('pModal');
+    const videoPlayer = document.getElementById('nativePlayer');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDesc = document.getElementById('modalDesc');
+    const epList = document.getElementById('epList');
+    const episodesSection = document.getElementById('episodesSection');
+    
+    // Search elements cache mapping selectors layout elements
+    const searchView = document.getElementById('searchView');
+    const searchInput = document.getElementById('searchInput');
+    const searchRes = document.getElementById('searchRes');
+
+    // ==========================================
+    // INITIALIZATION & CORE DATA FLOW
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadDashboardData();
+      setupEventListeners();
+      loader.style.display = 'none';
+    });
+
+    async function loadDashboardData() {
+      try {
+        const [moviesRes, tvRes] = await Promise.all([
+          fetch(`${TMDB_BASE}/trending/movie/week?api_key=${TMDB_API_KEY}`).then(res => res.json()),
+          fetch(`${TMDB_BASE}/trending/tv/week?api_key=${TMDB_API_KEY}`).then(res => res.json())
+        ]);
+
+        renderRow(moviesRes.results, moviesRow, 'movie');
+        renderRow(tvRes.results, tvRow, 'tv');
+
+        if (moviesRes.results.length > 0) {
+          setupHeroItem(moviesRes.results[0]);
+        }
+      } catch (err) {
+        console.error("Error fetching data from TMDb platform:", err);
+      }
+    }
+
+    function setupHeroItem(item) {
+      document.getElementById('hero').style.backgroundImage = `url('${IMAGE_BASE}${item.backdrop_path}')`;
+      document.getElementById('heroTitle').textContent = item.title || item.name;
+      document.getElementById('heroOverview').textContent = item.overview;
+      document.getElementById('heroPlayBtn').onclick = () => openMediaModal(item.id, 'movie', item.title || item.name, item.overview);
+    }
+
+    function renderRow(items, containerElement, mediaType) {
+      containerElement.innerHTML = items.map(item => `
+        <div class="card" onclick="openMediaModal(${item.id}, '${mediaType}', '${(item.title || item.name).replace(/'/g, "\\'")}', '${item.overview.replace(/'/g, "\\'")}')">
+          <img src="${IMAGE_BASE}${item.poster_path}" alt="${item.title || item.name}" loading="lazy"/>
+          <div class="card-name">${item.title || item.name}</div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // CONTENT RESOLVER ENGINE: TMDB -> KISSKH -> NATIVE STREAM
+    // ==========================================
+    async function openMediaModal(tmdbId, type, title, overview) {
+      modalTitle.textContent = title;
+      modalDesc.textContent = overview;
+      epList.innerHTML = '';
+      episodesSection.hidden = true;
+      
+      // Stop layout background instances before loading source paths
+      resetVideoEngine();
+      pModal.classList.add('open');
+      document.body.classList.add('modal-open');
+
+      try {
+        // Step 1: Query content indexing matching text titles over KissKH catalog data
+        const searchUrl = `${KISSKH_BASE}/DramaList/Search?q=${encodeURIComponent(title)}`;
+        const searchResults = await fetch(searchUrl).then(res => res.json());
+
+        if (!searchResults || searchResults.length === 0) {
+          alert("Content item stream payload could not be cross-mapped over current catalog listings.");
+          return;
+        }
+
+        // Exact match mapping evaluation logic
+        const targetContent = searchResults.find(item => 
+          item.title.toLowerCase().includes(title.toLowerCase())
+        ) || searchResults[0];
+
+        // Step 2: Extract asset mapping structural node listings (Episodes/Servers data array)
+        const detailsUrl = `${KISSKH_BASE}/DramaList/Episode/${targetContent.id}?type=0`;
+        const contentDetails = await fetch(detailsUrl).then(res => res.json());
+
+        if (type === 'movie') {
+          // Movies are represented as individual first index entries
+          if (contentDetails && contentDetails.episodes.length > 0) {
+            await resolveAndInjectPlaybackSource(contentDetails.episodes[0].id);
+          }
+        } else {
+          // Render tracking lists for dynamic episode selections across multi-part shows
+          episodesSection.hidden = false;
+          contentDetails.episodes.forEach((ep) => {
+            const epButton = document.createElement('div');
+            epButton.className = 'ep-card';
+            epButton.innerHTML = `<div class="ep-title">Episode ${ep.number}</div>`;
+            epButton.onclick = async () => {
+              document.querySelectorAll('.ep-card').forEach(c => c.classList.remove('playing'));
+              epButton.classList.add('playing');
+              await resolveAndInjectPlaybackSource(ep.id);
+            };
+            epList.appendChild(epButton);
+          });
+          
+          // Auto-trigger playback execution over the initial episode entry matching state
+          if (contentDetails.episodes.length > 0) {
+            epList.children[0].click();
+          }
+        }
+      } catch (error) {
+        console.error("Error resolving stream source paths architecture mapping:", error);
+      }
+    }
+
+    async function resolveAndInjectPlaybackSource(episodeId) {
+      try {
+        resetVideoEngine();
+        
+        // Fetch target raw stream file source references using asset IDs mapped above
+        const streamInfoUrl = `${KISSKH_BASE}/DramaList/Episode/Server?episodeId=${episodeId}`;
+        const videoSources = await fetch(streamInfoUrl).then(res => res.json());
+
+        if (!videoSources || videoSources.length === 0) {
+          alert("No stream mirrors returned valid resolution paths.");
+          return;
+        }
+
+        // Prioritize stream definitions formatting structure (Fallback handling order: .m3u8 -> custom HLS assets -> raw web sources)
+        const primarySource = videoSources[0].VideoUrl;
+        
+        loadNativeStream(primarySource);
+      } catch (err) {
+        console.error("Failed injection mapping configuration over native targets:", err);
+      }
+    }
+
+    function loadNativeStream(sourceUrl) {
+      if (!sourceUrl) return;
+
+      // Integration strategy branch context for handling Adaptive HLS feeds vs standard video container layouts (.mp4)
+      if (sourceUrl.includes('.m3u8')) {
+        if (Hls.isSupported()) {
+          hlsInstance = new Hls({
+            maxBufferSize: 30 * 1024 * 1024, // 30MB execution stream buffer threshold limit optimization
+            enableWorker: true
+          });
+          hlsInstance.loadSource(sourceUrl);
+          hlsInstance.attachMedia(videoPlayer);
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoPlayer.play().catch(e => console.log("Auto-playback capture tracking exception:", e));
+          });
+        } 
+        // Fallback architecture block configuration targeting Apple Safari native environment layers handling HLS internally
+        else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+          videoPlayer.src = sourceUrl;
+          videoPlayer.addEventListener('loadedmetadata', () => {
+            videoPlayer.play();
+          });
+        }
+      } else {
+        // Direct container source assignment injection logic (.mp4 web targets asset structures mapping)
+        videoPlayer.src = sourceUrl;
+        videoPlayer.load();
+        videoPlayer.play().catch(e => console.log("Playback interaction error:", e));
+      }
+    }
+
+    function resetVideoEngine() {
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+      videoPlayer.pause();
+      videoPlayer.removeAttribute('src');
+      videoPlayer.load();
+    }
+
+    // ==========================================
+    // SEARCH & INTERFACE INTERACTION LAYERS
+    // ==========================================
+    function setupEventListeners() {
+      document.getElementById('closeModalBtn').onclick = () => {
+        pModal.classList.remove('open');
+        document.body.classList.remove('modal-open');
+        resetVideoEngine();
+      };
+
+      document.getElementById('searchBtn').onclick = () => {
+        searchView.classList.add('open');
+        document.body.classList.add('search-open');
+        searchInput.focus();
+      };
+
+      document.getElementById('closeSearchBtn').onclick = () => {
+        searchView.classList.remove('open');
+        document.body.classList.remove('search-open');
+        searchInput.value = '';
+        searchRes.innerHTML = '';
+      };
+
+      // Debounced key parsing handling user search interactions
+      let searchTimeout = null;
+      searchInput.oninput = () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+          const query = searchInput.value.trim();
+          if (query.length < 3) {
+            searchRes.innerHTML = '';
+            return;
+          }
+          
+          const searchData = await fetch(`${TMDB_BASE}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`).then(res => res.json());
+          if (searchData.results) {
+            const cleanMatches = searchData.results.filter(i => i.media_type === 'movie' || i.media_type === 'tv');
+            searchRes.innerHTML = cleanMatches.map(item => `
+              <div class="card" onclick="searchView.classList.remove('open'); openMediaModal(${item.id}, '${item.media_type}', '${(item.title || item.name).replace(/'/g, "\\'")}', '${item.overview ? item.overview.replace(/'/g, "\\'") : ''}')">
+                <img src="${item.poster_path ? IMAGE_BASE + item.poster_path : 'https://placehold.co/300x450/111/fff?text=No+Poster'}" alt="${item.title || item.name}" />
+                <div class="card-name">${item.title || item.name}</div>
+              </div>
+            `).join('');
+          }
+        }, 400);
+      };
+      
+      document.getElementById('logoBtn').onclick = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+    }
+  </script>
+</body>
+</html>
